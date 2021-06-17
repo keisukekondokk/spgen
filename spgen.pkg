@@ -1,0 +1,8 @@
+v 3
+d spgen.  Stata module to generate spatially lagged variables
+d Keisuke Kondo, Research Institute of Economy, Trade and Industry
+d 
+d Support: webpage https://keisukekondokk.github.io/
+d Support: email kondo-keisuke@rieti.go.jp
+f ado/spgen.ado
+f ado/spgen.sthlp

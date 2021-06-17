@@ -1,0 +1,810 @@
+{smcl}
+{com}{sf}{ul off}{txt}{.-}
+      name:  {res}<unnamed>
+       {txt}log:  {res}E:\MyWorks\RIETI_Project\Stata_RePEc_SPGEN\github\spgen\demo\jpmuni_crime\log/LOG_spgen.smcl
+  {txt}log type:  {res}smcl
+ {txt}opened on:  {res} 6 Jun 2021, 08:46:04
+{txt}
+{com}. 
+. /*************************************************
+> ** Dataset
+> ** 
+> ** 
+> *************************************************/
+. 
+. **
+. set matsize 10000
+{txt}
+{com}. 
+. ** 
+. use "data/income2005.dta", clear 
+{txt}
+{com}. 
+. ** 
+. merge 1:1 id_muni using "data/income_pop2005.dta", keepusing(incpop)
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}           1,741{txt}  (_merge==3)
+{col 5}{hline 41}
+
+{com}. drop _merge
+{txt}
+{com}. 
+. ** 
+. merge 1:1 id_muni using "data/labor2005.dta", keepusing(labor emp unemp nonlabor)
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}           1,741{txt}  (_merge==3)
+{col 5}{hline 41}
+
+{com}. drop _merge
+{txt}
+{com}. 
+. ** 
+. merge 1:1 id_muni using "data/crime2006.dta", keepusing(crime)
+{res}
+{txt}{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}           1,741{txt}  (_merge==3)
+{col 5}{hline 41}
+
+{com}. drop _merge
+{txt}
+{com}. 
+. ** Tokyo 23 Wards
+. replace id_muni = 13100 if id_muni >= 13101 & id_muni <= 13123
+{txt}(23 real changes made)
+
+{com}. 
+. ** Tokyo 23 Wards
+. local VARLIST = "inc incpop labor emp unemp nonlabor crime"
+{txt}
+{com}. foreach VAR in `VARLIST' {c -(}
+{txt}  2{com}.         by id_muni, sort: egen total_`VAR' = total(`VAR')
+{txt}  3{com}.         replace `VAR' = total_`VAR'
+{txt}  4{com}.         drop total_`VAR'
+{txt}  5{com}. {c )-}
+{txt}(830 real changes made)
+(23 real changes made)
+(23 real changes made)
+(23 real changes made)
+(23 real changes made)
+(23 real changes made)
+(23 real changes made)
+
+{com}. 
+. ** 
+. replace name_muni = "東京都特別区" if id_muni == 13100
+{txt}(23 real changes made)
+
+{com}. 
+. ** 
+. duplicates drop id_muni, force
+
+{p 0 4}{txt}Duplicates in terms of {res} id_muni{p_end}
+
+{txt}(22 observations deleted)
+
+{com}. 
+. ** 
+. save "data/japan_muni2005.dta", replace 
+{txt}file data/japan_muni2005.dta saved
+
+{com}. 
+. 
+. /*************************************************
+> ** Dataset
+> ** 
+> ** 
+> *************************************************/
+. 
+. ** Load Dataset
+. use "data/DTA_japan_muni.dta", clear
+{txt}
+{com}. 
+. ** 
+. gen id_muni_old = id_muni
+{txt}
+{com}. replace id_muni = 13100 if id_muni >= 13101 & id_muni <= 13123
+{txt}(23 real changes made)
+
+{com}. 
+. ** Tokyo 23 Wards
+. local VARLIST area iarea
+{txt}
+{com}. foreach VAR in `VARLIST' {c -(}
+{txt}  2{com}.         by id_muni, sort: egen total_`VAR' = total(`VAR')
+{txt}  3{com}.         replace `VAR' = total_`VAR'
+{txt}  4{com}.         drop total_`VAR'
+{txt}  5{com}. {c )-}
+{txt}(1,740 real changes made)
+(1,675 real changes made)
+
+{com}. 
+. ** 
+. drop if id_muni_old >= 13102 & id_muni_old <= 13123
+{txt}(22 observations deleted)
+
+{com}. drop id_muni_old
+{txt}
+{com}.         
+. ** Lon Lat
+. merge 1:1 id_muni using "data/japan_muni2005.dta"
+{res}{txt}{p 0 7 2}
+(note: variable
+name_muni was 
+str33, now str34 to accommodate using data's values)
+{p_end}
+
+{col 5}Result{col 38}# of obs.
+{col 5}{hline 41}
+{col 5}not matched{col 30}{res}               0
+{txt}{col 5}matched{col 30}{res}           1,719{txt}  (_merge==3)
+{col 5}{hline 41}
+
+{com}. drop if _merge == 2
+{txt}(0 observations deleted)
+
+{com}. drop _merge
+{txt}
+{com}. 
+. ** SPSET
+. spset id_muni, coord(lon lat)
+{res}{txt}{p 2 5 2}
+Sp dataset {bf:DTA_japan_muni.dta}
+{p_end}
+                data:  panel
+     spatial-unit id:  _ID (equal to id_muni)
+             time id:  year (see {bf:xtset})
+         coordinates:  _CX, _CY (planar)
+    linked shapefile:  none
+
+{com}. 
+. **
+. gen id_pref = floor(id_muni/1000), before(id_muni)
+{txt}
+{com}. 
+. **
+. gen id_region = .
+{txt}(1,719 missing values generated)
+
+{com}. replace id_region = 1 if id_pref >= 1 & id_pref <= 7
+{txt}(406 real changes made)
+
+{com}. replace id_region = 2 if id_pref >= 8 & id_pref <= 14
+{txt}(294 real changes made)
+
+{com}. replace id_region = 3 if id_pref >= 15 & id_pref <= 20
+{txt}(185 real changes made)
+
+{com}. replace id_region = 4 if id_pref >= 21 & id_pref <= 24
+{txt}(160 real changes made)
+
+{com}. replace id_region = 5 if id_pref >= 25 & id_pref <= 30
+{txt}(198 real changes made)
+
+{com}. replace id_region = 6 if id_pref >= 31 & id_pref <= 35
+{txt}(107 real changes made)
+
+{com}. replace id_region = 7 if id_pref >= 36 & id_pref <= 39
+{txt}(95 real changes made)
+
+{com}. replace id_region = 8 if id_pref >= 40 & id_pref <= 47
+{txt}(274 real changes made)
+
+{com}. tab id_region, gen(d_region)
+
+  {txt}id_region {c |}      Freq.     Percent        Cum.
+{hline 12}{c +}{hline 35}
+          1 {c |}{res}        406       23.62       23.62
+{txt}          2 {c |}{res}        294       17.10       40.72
+{txt}          3 {c |}{res}        185       10.76       51.48
+{txt}          4 {c |}{res}        160        9.31       60.79
+{txt}          5 {c |}{res}        198       11.52       72.31
+{txt}          6 {c |}{res}        107        6.22       78.53
+{txt}          7 {c |}{res}         95        5.53       84.06
+{txt}          8 {c |}{res}        274       15.94      100.00
+{txt}{hline 12}{c +}{hline 35}
+      Total {c |}{res}      1,719      100.00
+{txt}
+{com}. 
+. **
+. gen pop = labor + nonlabor
+{txt}
+{com}. gen crimer = crime / pop * 1000
+{txt}
+{com}. 
+. ** Standardize
+. egen std_crimer = std(crimer)
+{txt}
+{com}. 
+. ** 
+. gen ur = unemp / labor * 100
+{txt}
+{com}. gen lnpcinc = log(inc / incpop)
+{txt}
+{com}. 
+. ** Generate Spatial Lagged Variables: 
+. local VARLIST crimer std_crimer ur lnpcinc
+{txt}
+{com}. spgen `VARLIST', lon(lon) lat(lat) dist(.) dunit(km) swm(pow 4) replace
+{res}{txt}Size of spatial weight matrix:{res} 1719 * 1719
+{txt}Calculating bilateral distance...
+{txt}{c TT}{hline 15}{c TT}
+{txt}{c |}Completed:  10%{c |}
+{txt}{c |}Completed:  20%{c |}
+{txt}{c |}Completed:  30%{c |}
+{txt}{c |}Completed:  40%{c |}
+{txt}{c |}Completed:  50%{c |}
+{txt}{c |}Completed:  60%{c |}
+{txt}{c |}Completed:  70%{c |}
+{txt}{c |}Completed:  80%{c |}
+{txt}{c |}Completed:  90%{c |}
+{txt}{c |}Completed: 100%{c |}
+{txt}{c BT}{hline 15}{c BT}
+{bf:splag1_crimer_p} was generated in the dataset.
+{bf:splag1_std_crimer_p} was generated in the dataset.
+{bf:splag1_ur_p} was generated in the dataset.
+{bf:splag1_lnpcinc_p} was generated in the dataset.
+
+{com}. foreach VAR in `VARLIST' {c -(}
+{txt}  2{com}.         rename splag1_`VAR'_p w`VAR'
+{txt}  3{com}. {c )-}
+{res}{txt}
+{com}. 
+. ** Generate Spatial Lagged Variables: 2nd order
+. local VARLIST ur lnpcinc
+{txt}
+{com}. spgen `VARLIST', lon(lon) lat(lat) dist(.) dunit(km) swm(pow 4) order(2) replace
+{res}{txt}Size of spatial weight matrix:{res} 1719 * 1719
+{txt}Calculating bilateral distance...
+{txt}{c TT}{hline 15}{c TT}
+{txt}{c |}Completed:  10%{c |}
+{txt}{c |}Completed:  20%{c |}
+{txt}{c |}Completed:  30%{c |}
+{txt}{c |}Completed:  40%{c |}
+{txt}{c |}Completed:  50%{c |}
+{txt}{c |}Completed:  60%{c |}
+{txt}{c |}Completed:  70%{c |}
+{txt}{c |}Completed:  80%{c |}
+{txt}{c |}Completed:  90%{c |}
+{txt}{c |}Completed: 100%{c |}
+{txt}{c BT}{hline 15}{c BT}
+{bf:splag2_ur_p} was generated in the dataset.
+{bf:splag2_lnpcinc_p} was generated in the dataset.
+
+{com}. foreach VAR in `VARLIST' {c -(}
+{txt}  2{com}.         rename splag2_`VAR'_p w2`VAR'
+{txt}  3{com}. {c )-}
+{res}{txt}
+{com}. 
+. ** Generate Spatial Lagged Variables: 3rd order
+. local VARLIST ur lnpcinc
+{txt}
+{com}. spgen `VARLIST', lon(lon) lat(lat) dist(.) dunit(km) swm(pow 4) order(3) replace
+{res}{txt}Size of spatial weight matrix:{res} 1719 * 1719
+{txt}Calculating bilateral distance...
+{txt}{c TT}{hline 15}{c TT}
+{txt}{c |}Completed:  10%{c |}
+{txt}{c |}Completed:  20%{c |}
+{txt}{c |}Completed:  30%{c |}
+{txt}{c |}Completed:  40%{c |}
+{txt}{c |}Completed:  50%{c |}
+{txt}{c |}Completed:  60%{c |}
+{txt}{c |}Completed:  70%{c |}
+{txt}{c |}Completed:  80%{c |}
+{txt}{c |}Completed:  90%{c |}
+{txt}{c |}Completed: 100%{c |}
+{txt}{c BT}{hline 15}{c BT}
+{bf:splag3_ur_p} was generated in the dataset.
+{bf:splag3_lnpcinc_p} was generated in the dataset.
+
+{com}. foreach VAR in `VARLIST' {c -(}
+{txt}  2{com}.         rename splag3_`VAR'_p w3`VAR'
+{txt}  3{com}. {c )-}
+{res}{txt}
+{com}. 
+. 
+. /*************************************************
+> ** Moran Scatter Plot
+> ** 
+> ** 
+> *************************************************/
+. 
+. ** Scatter Plot
+. local VAR wstd_crimer std_crimer
+{txt}
+{com}. twoway ///
+>         (scatter `VAR', ms(Oh)) ///
+>         (lfit `VAR', est(nocon)), ///
+>         ytitle("W crime rate", tstyle(size(medlarge))) ///
+>         xtitle("crime rate", tstyle(size(medlarge)) height(7)) ///
+>         ylabel(-2(2)6, format(%2.1f) grid ang(h) labsize(medlarge)) ///
+>         xlabel(-2(2)6, format(%2.1f) grid labsize(medlarge)) ///
+>         aspect(1) legend(off) graphregion(color(white) fcolor(white))
+{res}{txt}
+{com}. graph export "fig/FIG_jpmuni_crime_msp_d4.eps", replace
+{txt}(file fig/FIG_jpmuni_crime_msp_d4.eps written in EPS format)
+
+{com}. 
+. /*************************************************
+> ** Descriptive Statistics
+> ** 
+> ** 
+> ** 
+> *************************************************/
+. 
+. sum crimer ur lnpcinc wcrimer wur wlnpcinc
+
+{txt}    Variable {c |}        Obs        Mean    Std. Dev.       Min        Max
+{hline 13}{c +}{hline 57}
+{space 6}crimer {c |}{res}      1,719     12.2038    7.290995          0   49.57858
+{txt}{space 10}ur {c |}{res}      1,719    5.546185    2.072703          0   19.40613
+{txt}{space 5}lnpcinc {c |}{res}      1,719    8.007411    .1343473   7.653748   8.690903
+{txt}{space 5}wcrimer {c |}{res}      1,719    12.52276    6.457646   .3084648   43.14467
+{txt}{space 9}wur {c |}{res}      1,719    5.629747    1.815418   .6466451   16.37302
+{txt}{hline 13}{c +}{hline 57}
+{space 4}wlnpcinc {c |}{res}      1,719    8.009233    .1234544   7.728163   8.569889
+{txt}
+{com}. 
+. 
+. /*************************************************
+> ** Estimation of Spatial Augtoregressive Model
+> ** IV/GMM Estimation
+> ** y = rho*Wy + XB + u
+> ** Delta = 4
+> *************************************************/
+. 
+. ** OLS: y = XB + u
+. reg crimer ur lnpcinc i.id_pref, robust
+
+{txt}Linear regression                               Number of obs     = {res}     1,719
+                                                {txt}F(48, 1670)       =  {res}    45.95
+                                                {txt}Prob > F          = {res}    0.0000
+                                                {txt}R-squared         = {res}    0.5744
+                                                {txt}Root MSE          =    {res} 4.8241
+
+{txt}{hline 13}{c TT}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{col 14}{c |}{col 26}    Robust
+{col 1}      crimer{col 14}{c |}      Coef.{col 26}   Std. Err.{col 38}      t{col 46}   P>|t|{col 54}     [95% Con{col 67}f. Interval]
+{hline 13}{c +}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{space 10}ur {c |}{col 14}{res}{space 2} .9869088{col 26}{space 2}  .086421{col 37}{space 1}   11.42{col 46}{space 3}0.000{col 54}{space 4} .8174039{col 67}{space 3} 1.156414
+{txt}{space 5}lnpcinc {c |}{col 14}{res}{space 2} 23.72636{col 26}{space 2} 1.638856{col 37}{space 1}   14.48{col 46}{space 3}0.000{col 54}{space 4} 20.51193{col 67}{space 3} 26.94079
+{txt}{space 12} {c |}
+{space 5}id_pref {c |}
+{space 10}2  {c |}{col 14}{res}{space 2}-1.309162{col 26}{space 2} .7570193{col 37}{space 1}   -1.73{col 46}{space 3}0.084{col 54}{space 4}-2.793969{col 67}{space 3} .1756446
+{txt}{space 10}3  {c |}{col 14}{res}{space 2}-.2812953{col 26}{space 2} .6580587{col 37}{space 1}   -0.43{col 46}{space 3}0.669{col 54}{space 4}-1.572002{col 67}{space 3} 1.009412
+{txt}{space 10}4  {c |}{col 14}{res}{space 2} 4.033569{col 26}{space 2} .5585354{col 37}{space 1}    7.22{col 46}{space 3}0.000{col 54}{space 4} 2.938066{col 67}{space 3} 5.129072
+{txt}{space 10}5  {c |}{col 14}{res}{space 2} .3992493{col 26}{space 2} .6285611{col 37}{space 1}    0.64{col 46}{space 3}0.525{col 54}{space 4}-.8336012{col 67}{space 3}   1.6321
+{txt}{space 10}6  {c |}{col 14}{res}{space 2} 1.698894{col 26}{space 2} .5269165{col 37}{space 1}    3.22{col 46}{space 3}0.001{col 54}{space 4} .6654073{col 67}{space 3}  2.73238
+{txt}{space 10}7  {c |}{col 14}{res}{space 2} 2.518292{col 26}{space 2} .5538158{col 37}{space 1}    4.55{col 46}{space 3}0.000{col 54}{space 4} 1.432046{col 67}{space 3} 3.604539
+{txt}{space 10}8  {c |}{col 14}{res}{space 2} 6.136468{col 26}{space 2} .7754048{col 37}{space 1}    7.91{col 46}{space 3}0.000{col 54}{space 4}   4.6156{col 67}{space 3} 7.657336
+{txt}{space 10}9  {c |}{col 14}{res}{space 2} 6.526484{col 26}{space 2} .8684546{col 37}{space 1}    7.52{col 46}{space 3}0.000{col 54}{space 4}  4.82311{col 67}{space 3} 8.229859
+{txt}{space 9}10  {c |}{col 14}{res}{space 2} 5.573789{col 26}{space 2} .9018154{col 37}{space 1}    6.18{col 46}{space 3}0.000{col 54}{space 4} 3.804981{col 67}{space 3} 7.342596
+{txt}{space 9}11  {c |}{col 14}{res}{space 2} 7.625692{col 26}{space 2} .8349529{col 37}{space 1}    9.13{col 46}{space 3}0.000{col 54}{space 4} 5.988028{col 67}{space 3} 9.263357
+{txt}{space 9}12  {c |}{col 14}{res}{space 2} 6.671975{col 26}{space 2} .7937425{col 37}{space 1}    8.41{col 46}{space 3}0.000{col 54}{space 4} 5.115141{col 67}{space 3}  8.22881
+{txt}{space 9}13  {c |}{col 14}{res}{space 2} 1.528347{col 26}{space 2} 1.240169{col 37}{space 1}    1.23{col 46}{space 3}0.218{col 54}{space 4}-.9041025{col 67}{space 3} 3.960796
+{txt}{space 9}14  {c |}{col 14}{res}{space 2}  .557882{col 26}{space 2} 1.046206{col 37}{space 1}    0.53{col 46}{space 3}0.594{col 54}{space 4} -1.49413{col 67}{space 3} 2.609894
+{txt}{space 9}15  {c |}{col 14}{res}{space 2} 4.958919{col 26}{space 2} .9308384{col 37}{space 1}    5.33{col 46}{space 3}0.000{col 54}{space 4} 3.133186{col 67}{space 3} 6.784652
+{txt}{space 9}16  {c |}{col 14}{res}{space 2}  2.47867{col 26}{space 2} .7208841{col 37}{space 1}    3.44{col 46}{space 3}0.001{col 54}{space 4} 1.064739{col 67}{space 3} 3.892602
+{txt}{space 9}17  {c |}{col 14}{res}{space 2}  2.28696{col 26}{space 2} 1.216673{col 37}{space 1}    1.88{col 46}{space 3}0.060{col 54}{space 4}-.0994053{col 67}{space 3} 4.673325
+{txt}{space 9}18  {c |}{col 14}{res}{space 2} .8110403{col 26}{space 2} .6761502{col 37}{space 1}    1.20{col 46}{space 3}0.231{col 54}{space 4}-.5151509{col 67}{space 3} 2.137231
+{txt}{space 9}19  {c |}{col 14}{res}{space 2} .7956885{col 26}{space 2} 1.289644{col 37}{space 1}    0.62{col 46}{space 3}0.537{col 54}{space 4}-1.733801{col 67}{space 3} 3.325178
+{txt}{space 9}20  {c |}{col 14}{res}{space 2}  2.63623{col 26}{space 2} .5293066{col 37}{space 1}    4.98{col 46}{space 3}0.000{col 54}{space 4} 1.598055{col 67}{space 3} 3.674404
+{txt}{space 9}21  {c |}{col 14}{res}{space 2} 7.317654{col 26}{space 2} .9571666{col 37}{space 1}    7.65{col 46}{space 3}0.000{col 54}{space 4} 5.440281{col 67}{space 3} 9.195026
+{txt}{space 9}22  {c |}{col 14}{res}{space 2} 5.245067{col 26}{space 2} .5932343{col 37}{space 1}    8.84{col 46}{space 3}0.000{col 54}{space 4} 4.081506{col 67}{space 3} 6.408628
+{txt}{space 9}23  {c |}{col 14}{res}{space 2} 11.35885{col 26}{space 2} 1.111925{col 37}{space 1}   10.22{col 46}{space 3}0.000{col 54}{space 4} 9.177936{col 67}{space 3} 13.53976
+{txt}{space 9}24  {c |}{col 14}{res}{space 2} 5.633679{col 26}{space 2} 1.138383{col 37}{space 1}    4.95{col 46}{space 3}0.000{col 54}{space 4} 3.400871{col 67}{space 3} 7.866488
+{txt}{space 9}25  {c |}{col 14}{res}{space 2} 4.580433{col 26}{space 2} .7510319{col 37}{space 1}    6.10{col 46}{space 3}0.000{col 54}{space 4}  3.10737{col 67}{space 3} 6.053496
+{txt}{space 9}26  {c |}{col 14}{res}{space 2} 7.852239{col 26}{space 2} 1.455578{col 37}{space 1}    5.39{col 46}{space 3}0.000{col 54}{space 4}  4.99729{col 67}{space 3} 10.70719
+{txt}{space 9}27  {c |}{col 14}{res}{space 2} 9.085393{col 26}{space 2} 1.456808{col 37}{space 1}    6.24{col 46}{space 3}0.000{col 54}{space 4}  6.22803{col 67}{space 3} 11.94276
+{txt}{space 9}28  {c |}{col 14}{res}{space 2} 5.968747{col 26}{space 2} 1.004692{col 37}{space 1}    5.94{col 46}{space 3}0.000{col 54}{space 4}  3.99816{col 67}{space 3} 7.939335
+{txt}{space 9}29  {c |}{col 14}{res}{space 2}-2.335514{col 26}{space 2} .9097098{col 37}{space 1}   -2.57{col 46}{space 3}0.010{col 54}{space 4}-4.119806{col 67}{space 3}-.5512221
+{txt}{space 9}30  {c |}{col 14}{res}{space 2} 4.059407{col 26}{space 2} .8527762{col 37}{space 1}    4.76{col 46}{space 3}0.000{col 54}{space 4} 2.386784{col 67}{space 3}  5.73203
+{txt}{space 9}31  {c |}{col 14}{res}{space 2} 4.323843{col 26}{space 2} 1.555209{col 37}{space 1}    2.78{col 46}{space 3}0.005{col 54}{space 4} 1.273479{col 67}{space 3} 7.374206
+{txt}{space 9}32  {c |}{col 14}{res}{space 2} .9652738{col 26}{space 2} 1.010386{col 37}{space 1}    0.96{col 46}{space 3}0.340{col 54}{space 4}-1.016482{col 67}{space 3}  2.94703
+{txt}{space 9}33  {c |}{col 14}{res}{space 2} 4.684212{col 26}{space 2} .7967062{col 37}{space 1}    5.88{col 46}{space 3}0.000{col 54}{space 4} 3.121564{col 67}{space 3}  6.24686
+{txt}{space 9}34  {c |}{col 14}{res}{space 2} 2.506818{col 26}{space 2} .7646148{col 37}{space 1}    3.28{col 46}{space 3}0.001{col 54}{space 4} 1.007113{col 67}{space 3} 4.006522
+{txt}{space 9}35  {c |}{col 14}{res}{space 2} 2.198633{col 26}{space 2} .7392096{col 37}{space 1}    2.97{col 46}{space 3}0.003{col 54}{space 4} .7487582{col 67}{space 3} 3.648508
+{txt}{space 9}36  {c |}{col 14}{res}{space 2} .6968116{col 26}{space 2} 1.010987{col 37}{space 1}    0.69{col 46}{space 3}0.491{col 54}{space 4}-1.286124{col 67}{space 3} 2.679747
+{txt}{space 9}37  {c |}{col 14}{res}{space 2} 6.074866{col 26}{space 2} 2.044592{col 37}{space 1}    2.97{col 46}{space 3}0.003{col 54}{space 4} 2.064632{col 67}{space 3}  10.0851
+{txt}{space 9}38  {c |}{col 14}{res}{space 2} 2.581062{col 26}{space 2} .7733148{col 37}{space 1}    3.34{col 46}{space 3}0.001{col 54}{space 4} 1.064294{col 67}{space 3}  4.09783
+{txt}{space 9}39  {c |}{col 14}{res}{space 2} 1.928027{col 26}{space 2} .7628888{col 37}{space 1}    2.53{col 46}{space 3}0.012{col 54}{space 4} .4317082{col 67}{space 3} 3.424346
+{txt}{space 9}40  {c |}{col 14}{res}{space 2} 9.073841{col 26}{space 2}  .810164{col 37}{space 1}   11.20{col 46}{space 3}0.000{col 54}{space 4} 7.484797{col 67}{space 3} 10.66288
+{txt}{space 9}41  {c |}{col 14}{res}{space 2} 3.696212{col 26}{space 2} .8887218{col 37}{space 1}    4.16{col 46}{space 3}0.000{col 54}{space 4} 1.953086{col 67}{space 3} 5.439338
+{txt}{space 9}42  {c |}{col 14}{res}{space 2} .3094575{col 26}{space 2} .7715115{col 37}{space 1}    0.40{col 46}{space 3}0.688{col 54}{space 4}-1.203774{col 67}{space 3} 1.822689
+{txt}{space 9}43  {c |}{col 14}{res}{space 2} 3.067731{col 26}{space 2} .6226688{col 37}{space 1}    4.93{col 46}{space 3}0.000{col 54}{space 4} 1.846437{col 67}{space 3} 4.289024
+{txt}{space 9}44  {c |}{col 14}{res}{space 2} 1.930825{col 26}{space 2} .7655148{col 37}{space 1}    2.52{col 46}{space 3}0.012{col 54}{space 4} .4293553{col 67}{space 3} 3.432295
+{txt}{space 9}45  {c |}{col 14}{res}{space 2} 2.528049{col 26}{space 2} .6701311{col 37}{space 1}    3.77{col 46}{space 3}0.000{col 54}{space 4} 1.213663{col 67}{space 3} 3.842434
+{txt}{space 9}46  {c |}{col 14}{res}{space 2}-1.167099{col 26}{space 2} .5995536{col 37}{space 1}   -1.95{col 46}{space 3}0.052{col 54}{space 4}-2.343054{col 67}{space 3} .0088569
+{txt}{space 9}47  {c |}{col 14}{res}{space 2}-.4378415{col 26}{space 2} 1.155416{col 37}{space 1}   -0.38{col 46}{space 3}0.705{col 54}{space 4}-2.704058{col 67}{space 3} 1.828375
+{txt}{space 12} {c |}
+{space 7}_cons {c |}{col 14}{res}{space 2}-186.6872{col 26}{space 2} 13.07629{col 37}{space 1}  -14.28{col 46}{space 3}0.000{col 54}{space 4}-212.3349{col 67}{space 3}-161.0396
+{txt}{hline 13}{c BT}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{res}{txt}
+{com}. est store reg
+{txt}
+{com}. 
+. ** OLS: y = rho*Wy + XB + u
+. reg crimer wcrimer ur lnpcinc i.id_pref, robust
+
+{txt}Linear regression                               Number of obs     = {res}     1,719
+                                                {txt}F(49, 1669)       =  {res}    59.23
+                                                {txt}Prob > F          = {res}    0.0000
+                                                {txt}R-squared         = {res}    0.6551
+                                                {txt}Root MSE          =    {res} 4.3442
+
+{txt}{hline 13}{c TT}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{col 14}{c |}{col 26}    Robust
+{col 1}      crimer{col 14}{c |}      Coef.{col 26}   Std. Err.{col 38}      t{col 46}   P>|t|{col 54}     [95% Con{col 67}f. Interval]
+{hline 13}{c +}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{space 5}wcrimer {c |}{col 14}{res}{space 2} .5341055{col 26}{space 2} .0327868{col 37}{space 1}   16.29{col 46}{space 3}0.000{col 54}{space 4}  .469798{col 67}{space 3}  .598413
+{txt}{space 10}ur {c |}{col 14}{res}{space 2} .6750028{col 26}{space 2} .0721571{col 37}{space 1}    9.35{col 46}{space 3}0.000{col 54}{space 4} .5334748{col 67}{space 3} .8165307
+{txt}{space 5}lnpcinc {c |}{col 14}{res}{space 2} 15.76084{col 26}{space 2} 1.569562{col 37}{space 1}   10.04{col 46}{space 3}0.000{col 54}{space 4} 12.68233{col 67}{space 3} 18.83936
+{txt}{space 12} {c |}
+{space 5}id_pref {c |}
+{space 10}2  {c |}{col 14}{res}{space 2}-.8018542{col 26}{space 2} .6261447{col 37}{space 1}   -1.28{col 46}{space 3}0.201{col 54}{space 4}-2.029966{col 67}{space 3} .4262575
+{txt}{space 10}3  {c |}{col 14}{res}{space 2}-.1716843{col 26}{space 2} .5300745{col 37}{space 1}   -0.32{col 46}{space 3}0.746{col 54}{space 4}-1.211365{col 67}{space 3} .8679966
+{txt}{space 10}4  {c |}{col 14}{res}{space 2} 1.622695{col 26}{space 2} .5808246{col 37}{space 1}    2.79{col 46}{space 3}0.005{col 54}{space 4} .4834734{col 67}{space 3} 2.761916
+{txt}{space 10}5  {c |}{col 14}{res}{space 2} .4632527{col 26}{space 2} .6218545{col 37}{space 1}    0.74{col 46}{space 3}0.456{col 54}{space 4}-.7564443{col 67}{space 3}  1.68295
+{txt}{space 10}6  {c |}{col 14}{res}{space 2} 1.260383{col 26}{space 2} .5258041{col 37}{space 1}    2.40{col 46}{space 3}0.017{col 54}{space 4} .2290777{col 67}{space 3} 2.291688
+{txt}{space 10}7  {c |}{col 14}{res}{space 2} 1.370369{col 26}{space 2} .4924286{col 37}{space 1}    2.78{col 46}{space 3}0.005{col 54}{space 4} .4045267{col 67}{space 3} 2.336212
+{txt}{space 10}8  {c |}{col 14}{res}{space 2} 2.187185{col 26}{space 2} .7943993{col 37}{space 1}    2.75{col 46}{space 3}0.006{col 54}{space 4} .6290607{col 67}{space 3} 3.745309
+{txt}{space 10}9  {c |}{col 14}{res}{space 2} 2.897116{col 26}{space 2} .8579904{col 37}{space 1}    3.38{col 46}{space 3}0.001{col 54}{space 4} 1.214265{col 67}{space 3} 4.579966
+{txt}{space 9}10  {c |}{col 14}{res}{space 2} 2.456299{col 26}{space 2} .8383906{col 37}{space 1}    2.93{col 46}{space 3}0.003{col 54}{space 4} .8118911{col 67}{space 3} 4.100707
+{txt}{space 9}11  {c |}{col 14}{res}{space 2} 2.498694{col 26}{space 2} .6848168{col 37}{space 1}    3.65{col 46}{space 3}0.000{col 54}{space 4} 1.155504{col 67}{space 3} 3.841884
+{txt}{space 9}12  {c |}{col 14}{res}{space 2} 2.149365{col 26}{space 2} .7613976{col 37}{space 1}    2.82{col 46}{space 3}0.005{col 54}{space 4}   .65597{col 67}{space 3}  3.64276
+{txt}{space 9}13  {c |}{col 14}{res}{space 2} -1.58196{col 26}{space 2} .9547079{col 37}{space 1}   -1.66{col 46}{space 3}0.098{col 54}{space 4}-3.454511{col 67}{space 3} .2905914
+{txt}{space 9}14  {c |}{col 14}{res}{space 2}-1.143487{col 26}{space 2}   .85441{col 37}{space 1}   -1.34{col 46}{space 3}0.181{col 54}{space 4}-2.819315{col 67}{space 3} .5323414
+{txt}{space 9}15  {c |}{col 14}{res}{space 2} 2.492122{col 26}{space 2} .9807885{col 37}{space 1}    2.54{col 46}{space 3}0.011{col 54}{space 4} .5684163{col 67}{space 3} 4.415827
+{txt}{space 9}16  {c |}{col 14}{res}{space 2} 1.075543{col 26}{space 2} .8172637{col 37}{space 1}    1.32{col 46}{space 3}0.188{col 54}{space 4}-.5274264{col 67}{space 3} 2.678513
+{txt}{space 9}17  {c |}{col 14}{res}{space 2} .9315107{col 26}{space 2} 1.174637{col 37}{space 1}    0.79{col 46}{space 3}0.428{col 54}{space 4}-1.372406{col 67}{space 3} 3.235427
+{txt}{space 9}18  {c |}{col 14}{res}{space 2} .3621365{col 26}{space 2} .7182551{col 37}{space 1}    0.50{col 46}{space 3}0.614{col 54}{space 4}-1.046639{col 67}{space 3} 1.770912
+{txt}{space 9}19  {c |}{col 14}{res}{space 2}-.3531564{col 26}{space 2} 1.147172{col 37}{space 1}   -0.31{col 46}{space 3}0.758{col 54}{space 4}-2.603204{col 67}{space 3} 1.896891
+{txt}{space 9}20  {c |}{col 14}{res}{space 2} 1.640235{col 26}{space 2} .4954411{col 37}{space 1}    3.31{col 46}{space 3}0.001{col 54}{space 4} .6684837{col 67}{space 3} 2.611987
+{txt}{space 9}21  {c |}{col 14}{res}{space 2} 2.814618{col 26}{space 2} .8525525{col 37}{space 1}    3.30{col 46}{space 3}0.001{col 54}{space 4} 1.142433{col 67}{space 3} 4.486803
+{txt}{space 9}22  {c |}{col 14}{res}{space 2} 2.354253{col 26}{space 2} .6033129{col 37}{space 1}    3.90{col 46}{space 3}0.000{col 54}{space 4} 1.170923{col 67}{space 3} 3.537583
+{txt}{space 9}23  {c |}{col 14}{res}{space 2} 4.502523{col 26}{space 2} .9778972{col 37}{space 1}    4.60{col 46}{space 3}0.000{col 54}{space 4} 2.584489{col 67}{space 3} 6.420557
+{txt}{space 9}24  {c |}{col 14}{res}{space 2} 1.678643{col 26}{space 2} .7698619{col 37}{space 1}    2.18{col 46}{space 3}0.029{col 54}{space 4} .1686463{col 67}{space 3}  3.18864
+{txt}{space 9}25  {c |}{col 14}{res}{space 2} 1.277637{col 26}{space 2} .8460507{col 37}{space 1}    1.51{col 46}{space 3}0.131{col 54}{space 4}-.3817957{col 67}{space 3} 2.937069
+{txt}{space 9}26  {c |}{col 14}{res}{space 2} 3.526189{col 26}{space 2} 1.368385{col 37}{space 1}    2.58{col 46}{space 3}0.010{col 54}{space 4} .8422568{col 67}{space 3} 6.210122
+{txt}{space 9}27  {c |}{col 14}{res}{space 2} 2.606379{col 26}{space 2}  1.22637{col 37}{space 1}    2.13{col 46}{space 3}0.034{col 54}{space 4} .2009929{col 67}{space 3} 5.011764
+{txt}{space 9}28  {c |}{col 14}{res}{space 2} 1.813909{col 26}{space 2} .8882574{col 37}{space 1}    2.04{col 46}{space 3}0.041{col 54}{space 4} .0716927{col 67}{space 3} 3.556125
+{txt}{space 9}29  {c |}{col 14}{res}{space 2}-2.767669{col 26}{space 2} .8335123{col 37}{space 1}   -3.32{col 46}{space 3}0.001{col 54}{space 4}-4.402508{col 67}{space 3}-1.132829
+{txt}{space 9}30  {c |}{col 14}{res}{space 2} 1.847816{col 26}{space 2} .9686965{col 37}{space 1}    1.91{col 46}{space 3}0.057{col 54}{space 4} -.052172{col 67}{space 3} 3.747804
+{txt}{space 9}31  {c |}{col 14}{res}{space 2} 1.346876{col 26}{space 2} 1.513349{col 37}{space 1}    0.89{col 46}{space 3}0.374{col 54}{space 4}-1.621386{col 67}{space 3} 4.315139
+{txt}{space 9}32  {c |}{col 14}{res}{space 2} .5767913{col 26}{space 2} .7862235{col 37}{space 1}    0.73{col 46}{space 3}0.463{col 54}{space 4}-.9652968{col 67}{space 3} 2.118879
+{txt}{space 9}33  {c |}{col 14}{res}{space 2} 2.058591{col 26}{space 2} .7683499{col 37}{space 1}    2.68{col 46}{space 3}0.007{col 54}{space 4} .5515598{col 67}{space 3} 3.565622
+{txt}{space 9}34  {c |}{col 14}{res}{space 2} .3749144{col 26}{space 2} .7362211{col 37}{space 1}    0.51{col 46}{space 3}0.611{col 54}{space 4}  -1.0691{col 67}{space 3} 1.818928
+{txt}{space 9}35  {c |}{col 14}{res}{space 2} .2320176{col 26}{space 2} .8227818{col 37}{space 1}    0.28{col 46}{space 3}0.778{col 54}{space 4}-1.381776{col 67}{space 3} 1.845811
+{txt}{space 9}36  {c |}{col 14}{res}{space 2}-.2643026{col 26}{space 2} .9004373{col 37}{space 1}   -0.29{col 46}{space 3}0.769{col 54}{space 4}-2.030408{col 67}{space 3} 1.501803
+{txt}{space 9}37  {c |}{col 14}{res}{space 2} 1.475482{col 26}{space 2} 2.077119{col 37}{space 1}    0.71{col 46}{space 3}0.478{col 54}{space 4}-2.598551{col 67}{space 3} 5.549515
+{txt}{space 9}38  {c |}{col 14}{res}{space 2} 1.200889{col 26}{space 2} .7663871{col 37}{space 1}    1.57{col 46}{space 3}0.117{col 54}{space 4} -.302292{col 67}{space 3} 2.704071
+{txt}{space 9}39  {c |}{col 14}{res}{space 2} .8962943{col 26}{space 2} .7521568{col 37}{space 1}    1.19{col 46}{space 3}0.234{col 54}{space 4}-.5789759{col 67}{space 3} 2.371564
+{txt}{space 9}40  {c |}{col 14}{res}{space 2} 3.691934{col 26}{space 2} .8027603{col 37}{space 1}    4.60{col 46}{space 3}0.000{col 54}{space 4} 2.117411{col 67}{space 3} 5.266457
+{txt}{space 9}41  {c |}{col 14}{res}{space 2} 1.559654{col 26}{space 2} .9520676{col 37}{space 1}    1.64{col 46}{space 3}0.102{col 54}{space 4}-.3077187{col 67}{space 3} 3.427026
+{txt}{space 9}42  {c |}{col 14}{res}{space 2}-.3266028{col 26}{space 2} .7955043{col 37}{space 1}   -0.41{col 46}{space 3}0.681{col 54}{space 4}-1.886894{col 67}{space 3} 1.233688
+{txt}{space 9}43  {c |}{col 14}{res}{space 2} 1.657127{col 26}{space 2} .6501495{col 37}{space 1}    2.55{col 46}{space 3}0.011{col 54}{space 4}  .381933{col 67}{space 3} 2.932322
+{txt}{space 9}44  {c |}{col 14}{res}{space 2} 1.222228{col 26}{space 2} .6644583{col 37}{space 1}    1.84{col 46}{space 3}0.066{col 54}{space 4} -.081031{col 67}{space 3} 2.525488
+{txt}{space 9}45  {c |}{col 14}{res}{space 2}   1.7561{col 26}{space 2} .5704079{col 37}{space 1}    3.08{col 46}{space 3}0.002{col 54}{space 4} .6373096{col 67}{space 3}  2.87489
+{txt}{space 9}46  {c |}{col 14}{res}{space 2}-.8968819{col 26}{space 2}   .48866{col 37}{space 1}   -1.84{col 46}{space 3}0.067{col 54}{space 4}-1.855333{col 67}{space 3} .0615692
+{txt}{space 9}47  {c |}{col 14}{res}{space 2}-1.375897{col 26}{space 2} 1.050366{col 37}{space 1}   -1.31{col 46}{space 3}0.190{col 54}{space 4}-3.436071{col 67}{space 3} .6842768
+{txt}{space 12} {c |}
+{space 7}_cons {c |}{col 14}{res}{space 2}-125.6117{col 26}{space 2} 12.46489{col 37}{space 1}  -10.08{col 46}{space 3}0.000{col 54}{space 4}-150.0602{col 67}{space 3}-101.1632
+{txt}{hline 13}{c BT}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{res}{txt}
+{com}. est store reg_sp
+{txt}
+{com}. 
+. ** 2SLS Robust: y = rho*Wy + XB + u, IV=WX, W2X
+. ivregress 2sls crimer (wcrimer = wur w2ur w3ur wlnpcinc w2lnpcinc w3lnpcinc) ur lnpcinc i.id_pref, robust
+{res}
+{txt}{col 1}Instrumental variables (2SLS) regression{col 51}Number of obs{col 67}= {res}     1,719
+{txt}{col 1}{col 51}Wald chi2({res}49{txt}){col 67}= {res}   2725.80
+{txt}{col 1}{col 51}Prob > chi2{col 67}= {res}    0.0000
+{txt}{col 1}{col 51}R-squared{col 67}= {res}    0.6471
+{txt}{col 51}Root MSE{col 67}=    {res} 4.3302
+
+{txt}{hline 13}{c TT}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{col 14}{c |}{col 26}    Robust
+{col 1}      crimer{col 14}{c |}      Coef.{col 26}   Std. Err.{col 38}      z{col 46}   P>|z|{col 54}     [95% Con{col 67}f. Interval]
+{hline 13}{c +}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{space 5}wcrimer {c |}{col 14}{res}{space 2} .3654689{col 26}{space 2} .0787606{col 37}{space 1}    4.64{col 46}{space 3}0.000{col 54}{space 4} .2111009{col 67}{space 3} .5198368
+{txt}{space 10}ur {c |}{col 14}{res}{space 2} .7734829{col 26}{space 2} .0831404{col 37}{space 1}    9.30{col 46}{space 3}0.000{col 54}{space 4} .6105308{col 67}{space 3} .9364351
+{txt}{space 5}lnpcinc {c |}{col 14}{res}{space 2} 18.27585{col 26}{space 2} 1.927003{col 37}{space 1}    9.48{col 46}{space 3}0.000{col 54}{space 4} 14.49899{col 67}{space 3} 22.05271
+{txt}{space 12} {c |}
+{space 5}id_pref {c |}
+{space 10}2  {c |}{col 14}{res}{space 2}-.9620299{col 26}{space 2} .6463374{col 37}{space 1}   -1.49{col 46}{space 3}0.137{col 54}{space 4}-2.228828{col 67}{space 3} .3047682
+{txt}{space 10}3  {c |}{col 14}{res}{space 2}-.2062925{col 26}{space 2} .5497159{col 37}{space 1}   -0.38{col 46}{space 3}0.707{col 54}{space 4}-1.283716{col 67}{space 3} .8711309
+{txt}{space 10}4  {c |}{col 14}{res}{space 2} 2.383896{col 26}{space 2} .6480206{col 37}{space 1}    3.68{col 46}{space 3}0.000{col 54}{space 4} 1.113799{col 67}{space 3} 3.653993
+{txt}{space 10}5  {c |}{col 14}{res}{space 2} .4430445{col 26}{space 2} .6056108{col 37}{space 1}    0.73{col 46}{space 3}0.464{col 54}{space 4}-.7439308{col 67}{space 3}  1.63002
+{txt}{space 10}6  {c |}{col 14}{res}{space 2} 1.398837{col 26}{space 2} .5119258{col 37}{space 1}    2.73{col 46}{space 3}0.006{col 54}{space 4} .3954806{col 67}{space 3} 2.402193
+{txt}{space 10}7  {c |}{col 14}{res}{space 2} 1.732811{col 26}{space 2} .5164873{col 37}{space 1}    3.35{col 46}{space 3}0.001{col 54}{space 4} .7205143{col 67}{space 3} 2.745107
+{txt}{space 10}8  {c |}{col 14}{res}{space 2} 3.434118{col 26}{space 2}   .93155{col 37}{space 1}    3.69{col 46}{space 3}0.000{col 54}{space 4} 1.608314{col 67}{space 3} 5.259923
+{txt}{space 10}9  {c |}{col 14}{res}{space 2}  4.04304{col 26}{space 2} .9787001{col 37}{space 1}    4.13{col 46}{space 3}0.000{col 54}{space 4} 2.124824{col 67}{space 3} 5.961257
+{txt}{space 9}10  {c |}{col 14}{res}{space 2} 3.440605{col 26}{space 2} .9250675{col 37}{space 1}    3.72{col 46}{space 3}0.000{col 54}{space 4} 1.627506{col 67}{space 3} 5.253704
+{txt}{space 9}11  {c |}{col 14}{res}{space 2} 4.117475{col 26}{space 2} 1.010956{col 37}{space 1}    4.07{col 46}{space 3}0.000{col 54}{space 4} 2.136037{col 67}{space 3} 6.098913
+{txt}{space 9}12  {c |}{col 14}{res}{space 2} 3.577319{col 26}{space 2} .9687615{col 37}{space 1}    3.69{col 46}{space 3}0.000{col 54}{space 4} 1.678581{col 67}{space 3} 5.476056
+{txt}{space 9}13  {c |}{col 14}{res}{space 2}-.5999219{col 26}{space 2}  1.10539{col 37}{space 1}   -0.54{col 46}{space 3}0.587{col 54}{space 4}-2.766446{col 67}{space 3} 1.566602
+{txt}{space 9}14  {c |}{col 14}{res}{space 2}-.6063022{col 26}{space 2} .9057087{col 37}{space 1}   -0.67{col 46}{space 3}0.503{col 54}{space 4}-2.381459{col 67}{space 3} 1.168854
+{txt}{space 9}15  {c |}{col 14}{res}{space 2}  3.27098{col 26}{space 2} 1.015318{col 37}{space 1}    3.22{col 46}{space 3}0.001{col 54}{space 4} 1.280993{col 67}{space 3} 5.260967
+{txt}{space 9}16  {c |}{col 14}{res}{space 2} 1.518562{col 26}{space 2} .7887992{col 37}{space 1}    1.93{col 46}{space 3}0.054{col 54}{space 4}-.0274561{col 67}{space 3}  3.06458
+{txt}{space 9}17  {c |}{col 14}{res}{space 2} 1.359476{col 26}{space 2} 1.145853{col 37}{space 1}    1.19{col 46}{space 3}0.235{col 54}{space 4}-.8863542{col 67}{space 3} 3.605306
+{txt}{space 9}18  {c |}{col 14}{res}{space 2} .5038719{col 26}{space 2} .6778378{col 37}{space 1}    0.74{col 46}{space 3}0.457{col 54}{space 4}-.8246659{col 67}{space 3}  1.83241
+{txt}{space 9}19  {c |}{col 14}{res}{space 2}  .009576{col 26}{space 2} 1.168229{col 37}{space 1}    0.01{col 46}{space 3}0.993{col 54}{space 4} -2.28011{col 67}{space 3} 2.299262
+{txt}{space 9}20  {c |}{col 14}{res}{space 2} 1.954707{col 26}{space 2} .5119182{col 37}{space 1}    3.82{col 46}{space 3}0.000{col 54}{space 4} .9513659{col 67}{space 3} 2.958048
+{txt}{space 9}21  {c |}{col 14}{res}{space 2} 4.236392{col 26}{space 2} 1.031451{col 37}{space 1}    4.11{col 46}{space 3}0.000{col 54}{space 4} 2.214785{col 67}{space 3} 6.257998
+{txt}{space 9}22  {c |}{col 14}{res}{space 2} 3.266989{col 26}{space 2} .6929386{col 37}{space 1}    4.71{col 46}{space 3}0.000{col 54}{space 4} 1.908854{col 67}{space 3} 4.625124
+{txt}{space 9}23  {c |}{col 14}{res}{space 2} 6.667316{col 26}{space 2} 1.395149{col 37}{space 1}    4.78{col 46}{space 3}0.000{col 54}{space 4} 3.932875{col 67}{space 3} 9.401758
+{txt}{space 9}24  {c |}{col 14}{res}{space 2} 2.927393{col 26}{space 2} .9817187{col 37}{space 1}    2.98{col 46}{space 3}0.003{col 54}{space 4}  1.00326{col 67}{space 3} 4.851526
+{txt}{space 9}25  {c |}{col 14}{res}{space 2}  2.32045{col 26}{space 2} .9072299{col 37}{space 1}    2.56{col 46}{space 3}0.011{col 54}{space 4} .5423123{col 67}{space 3} 4.098588
+{txt}{space 9}26  {c |}{col 14}{res}{space 2} 4.892082{col 26}{space 2} 1.373329{col 37}{space 1}    3.56{col 46}{space 3}0.000{col 54}{space 4} 2.200406{col 67}{space 3} 7.583758
+{txt}{space 9}27  {c |}{col 14}{res}{space 2} 4.652041{col 26}{space 2}  1.58496{col 37}{space 1}    2.94{col 46}{space 3}0.003{col 54}{space 4} 1.545577{col 67}{space 3} 7.758505
+{txt}{space 9}28  {c |}{col 14}{res}{space 2} 3.125743{col 26}{space 2} .9835148{col 37}{space 1}    3.18{col 46}{space 3}0.001{col 54}{space 4}  1.19809{col 67}{space 3} 5.053397
+{txt}{space 9}29  {c |}{col 14}{res}{space 2}-2.631221{col 26}{space 2} .8345972{col 37}{space 1}   -3.15{col 46}{space 3}0.002{col 54}{space 4}-4.267002{col 67}{space 3}-.9954411
+{txt}{space 9}30  {c |}{col 14}{res}{space 2} 2.546096{col 26}{space 2} .9464841{col 37}{space 1}    2.69{col 46}{space 3}0.007{col 54}{space 4} .6910217{col 67}{space 3} 4.401171
+{txt}{space 9}31  {c |}{col 14}{res}{space 2} 2.286814{col 26}{space 2} 1.512381{col 37}{space 1}    1.51{col 46}{space 3}0.131{col 54}{space 4}-.6773977{col 67}{space 3} 5.251025
+{txt}{space 9}32  {c |}{col 14}{res}{space 2} .6994495{col 26}{space 2} .8142342{col 37}{space 1}    0.86{col 46}{space 3}0.390{col 54}{space 4}-.8964203{col 67}{space 3} 2.295319
+{txt}{space 9}33  {c |}{col 14}{res}{space 2} 2.887596{col 26}{space 2} .8397727{col 37}{space 1}    3.44{col 46}{space 3}0.001{col 54}{space 4} 1.241671{col 67}{space 3}  4.53352
+{txt}{space 9}34  {c |}{col 14}{res}{space 2} 1.048034{col 26}{space 2} .7556925{col 37}{space 1}    1.39{col 46}{space 3}0.165{col 54}{space 4}-.4330956{col 67}{space 3} 2.529164
+{txt}{space 9}35  {c |}{col 14}{res}{space 2} .8529502{col 26}{space 2} .7976145{col 37}{space 1}    1.07{col 46}{space 3}0.285{col 54}{space 4}-.7103455{col 67}{space 3} 2.416246
+{txt}{space 9}36  {c |}{col 14}{res}{space 2} .0391563{col 26}{space 2} .9314741{col 37}{space 1}    0.04{col 46}{space 3}0.966{col 54}{space 4}-1.786499{col 67}{space 3} 1.864812
+{txt}{space 9}37  {c |}{col 14}{res}{space 2} 2.927676{col 26}{space 2} 2.063591{col 37}{space 1}    1.42{col 46}{space 3}0.156{col 54}{space 4}-1.116888{col 67}{space 3}  6.97224
+{txt}{space 9}38  {c |}{col 14}{res}{space 2}  1.63666{col 26}{space 2} .7627146{col 37}{space 1}    2.15{col 46}{space 3}0.032{col 54}{space 4} .1417673{col 67}{space 3} 3.131554
+{txt}{space 9}39  {c |}{col 14}{res}{space 2}  1.22205{col 26}{space 2} .7381263{col 37}{space 1}    1.66{col 46}{space 3}0.098{col 54}{space 4}-.2246509{col 67}{space 3} 2.668751
+{txt}{space 9}40  {c |}{col 14}{res}{space 2} 5.391199{col 26}{space 2} 1.074638{col 37}{space 1}    5.02{col 46}{space 3}0.000{col 54}{space 4} 3.284947{col 67}{space 3} 7.497451
+{txt}{space 9}41  {c |}{col 14}{res}{space 2} 2.234243{col 26}{space 2} .9527495{col 37}{space 1}    2.35{col 46}{space 3}0.019{col 54}{space 4} .3668887{col 67}{space 3} 4.101598
+{txt}{space 9}42  {c |}{col 14}{res}{space 2}-.1257753{col 26}{space 2} .7674849{col 37}{space 1}   -0.16{col 46}{space 3}0.870{col 54}{space 4}-1.630018{col 67}{space 3} 1.378468
+{txt}{space 9}43  {c |}{col 14}{res}{space 2} 2.102507{col 26}{space 2} .6462406{col 37}{space 1}    3.25{col 46}{space 3}0.001{col 54}{space 4} .8358981{col 67}{space 3} 3.369115
+{txt}{space 9}44  {c |}{col 14}{res}{space 2} 1.445958{col 26}{space 2} .6717586{col 37}{space 1}    2.15{col 46}{space 3}0.031{col 54}{space 4} .1293357{col 67}{space 3} 2.762581
+{txt}{space 9}45  {c |}{col 14}{res}{space 2} 1.999832{col 26}{space 2} .5861827{col 37}{space 1}    3.41{col 46}{space 3}0.001{col 54}{space 4} .8509354{col 67}{space 3} 3.148729
+{txt}{space 9}46  {c |}{col 14}{res}{space 2}-.9821992{col 26}{space 2} .5066335{col 37}{space 1}   -1.94{col 46}{space 3}0.053{col 54}{space 4}-1.975183{col 67}{space 3} .0107841
+{txt}{space 9}47  {c |}{col 14}{res}{space 2}-1.079718{col 26}{space 2} 1.049157{col 37}{space 1}   -1.03{col 46}{space 3}0.303{col 54}{space 4}-3.136029{col 67}{space 3} .9765919
+{txt}{space 12} {c |}
+{space 7}_cons {c |}{col 14}{res}{space 2}-144.8955{col 26}{space 2} 15.12233{col 37}{space 1}   -9.58{col 46}{space 3}0.000{col 54}{space 4}-174.5347{col 67}{space 3}-115.2562
+{txt}{hline 13}{c BT}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{p 0 15 69}Instrumented:{space 2}wcrimer{p_end}
+{p 0 15 69}Instruments:{space 3}ur lnpcinc 2.id_pref 3.id_pref 4.id_pref 5.id_pref 6.id_pref 7.id_pref 8.id_pref 9.id_pref 10.id_pref 11.id_pref 12.id_pref 13.id_pref 14.id_pref 15.id_pref 16.id_pref 17.id_pref 18.id_pref 19.id_pref 20.id_pref 21.id_pref 22.id_pref 23.id_pref 24.id_pref 25.id_pref 26.id_pref 27.id_pref 28.id_pref 29.id_pref 30.id_pref 31.id_pref 32.id_pref 33.id_pref 34.id_pref 35.id_pref 36.id_pref 37.id_pref 38.id_pref 39.id_pref 40.id_pref 41.id_pref 42.id_pref 43.id_pref 44.id_pref 45.id_pref 46.id_pref 47.id_pref wur w2ur w3ur wlnpcinc w2lnpcinc w3lnpcinc{p_end}
+
+{com}. estat firststage
+
+{txt}{col 3}First-stage regression summary statistics
+{res}{col 3}{text}{hline 13}{c TT}{hline 12}{hline 12}{hline 12}{hline 12}{hline 12}
+{col 16}{c |}{col 29}Adjusted{col 43}Partial{col 57}Robust
+{col 3}{text}    Variable{col 16}{c |}   R-sq.{col 29}   R-sq.{col 41}    R-sq.{col 53}  F(6,1664){col 65}  Prob > F
+{res}{col 3}{text}{hline 13}{c +}{hline 12}{hline 12}{hline 12}{hline 12}{hline 12}
+{col 3}{text}     wcrimer{col 16}{c |}{result}{space 2}0.6902{col 29}{space 2}0.6802{col 41}{space 3}0.1406{col 53}{space 3} 36.5241{col 65}{space 3}0.0000
+{col 3}{text}{hline 13}{c BT}{hline 12}{hline 12}{hline 12}{hline 12}{hline 12}
+
+{res}{txt}
+{com}. estat overid
+
+{txt}{col 3}Test of overidentifying restrictions:
+
+{col 3}Score chi2({res}5{txt}){col 26}={res}{col 28} 2.05809{txt}{col 38}(p = {res}0.8410{txt})
+
+{com}. est store ivreg_2sls_sp
+{txt}
+{com}. 
+. ** GMM Robust: y = rho*Wy + XB + u, IV=WX, W2X
+. ivregress gmm crimer (wcrimer = wur w2ur w3ur wlnpcinc w2lnpcinc w3lnpcinc) ur lnpcinc i.id_pref, igmm wmat(robust)
+{res}{txt}Iteration 1: change in beta =  6.398e-03   change in W =  4.987e-02
+{txt}Iteration 2: change in beta =  1.903e-04   change in W =  2.431e-03
+{txt}Iteration 3: change in beta =  7.444e-06   change in W =  6.348e-05
+{txt}Iteration 4: change in beta =  1.778e-06   change in W =  6.043e-06
+{txt}Iteration 5: change in beta =  1.879e-07   change in W =  3.265e-06
+{txt}Iteration 6: change in beta =  1.698e-06   change in W =  2.904e-07
+{txt}Iteration 7: change in beta =  1.725e-07   change in W =  3.026e-06
+{txt}Iteration 8: change in beta =  6.549e-07   change in W =  2.204e-07
+{res}
+{txt}{col 1}Instrumental variables (GMM) regression{col 51}Number of obs{col 67}= {res}     1,719
+{txt}{col 1}{col 51}Wald chi2({res}49{txt}){col 67}= {res}   2734.79
+{txt}{col 1}{col 51}Prob > chi2{col 67}= {res}    0.0000
+{txt}{col 1}{col 51}R-squared{col 67}= {res}    0.6463
+{txt}{col 1}GMM weight matrix: Robust{col 51}Root MSE{col 67}=    {res} 4.3346
+
+{txt}{hline 13}{c TT}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{col 14}{c |}{col 26}    Robust
+{col 1}      crimer{col 14}{c |}      Coef.{col 26}   Std. Err.{col 38}      z{col 46}   P>|z|{col 54}     [95% Con{col 67}f. Interval]
+{hline 13}{c +}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{space 5}wcrimer {c |}{col 14}{res}{space 2} .3588711{col 26}{space 2} .0776648{col 37}{space 1}    4.62{col 46}{space 3}0.000{col 54}{space 4} .2066508{col 67}{space 3} .5110914
+{txt}{space 10}ur {c |}{col 14}{res}{space 2}  .764033{col 26}{space 2} .0820832{col 37}{space 1}    9.31{col 46}{space 3}0.000{col 54}{space 4} .6031529{col 67}{space 3} .9249132
+{txt}{space 5}lnpcinc {c |}{col 14}{res}{space 2} 18.53356{col 26}{space 2} 1.889072{col 37}{space 1}    9.81{col 46}{space 3}0.000{col 54}{space 4} 14.83105{col 67}{space 3} 22.23608
+{txt}{space 12} {c |}
+{space 5}id_pref {c |}
+{space 10}2  {c |}{col 14}{res}{space 2}-.9820817{col 26}{space 2} .6429006{col 37}{space 1}   -1.53{col 46}{space 3}0.127{col 54}{space 4}-2.242144{col 67}{space 3} .2779803
+{txt}{space 10}3  {c |}{col 14}{res}{space 2}-.2217465{col 26}{space 2} .5476865{col 37}{space 1}   -0.40{col 46}{space 3}0.686{col 54}{space 4}-1.295192{col 67}{space 3} .8516993
+{txt}{space 10}4  {c |}{col 14}{res}{space 2}  2.39186{col 26}{space 2} .6459157{col 37}{space 1}    3.70{col 46}{space 3}0.000{col 54}{space 4} 1.125888{col 67}{space 3} 3.657831
+{txt}{space 10}5  {c |}{col 14}{res}{space 2} .4353882{col 26}{space 2} .6038354{col 37}{space 1}    0.72{col 46}{space 3}0.471{col 54}{space 4}-.7481075{col 67}{space 3} 1.618884
+{txt}{space 10}6  {c |}{col 14}{res}{space 2} 1.371414{col 26}{space 2} .5106087{col 37}{space 1}    2.69{col 46}{space 3}0.007{col 54}{space 4} .3706391{col 67}{space 3} 2.372188
+{txt}{space 10}7  {c |}{col 14}{res}{space 2} 1.695923{col 26}{space 2} .5158583{col 37}{space 1}    3.29{col 46}{space 3}0.001{col 54}{space 4} .6848588{col 67}{space 3} 2.706986
+{txt}{space 10}8  {c |}{col 14}{res}{space 2} 3.475192{col 26}{space 2} .9264576{col 37}{space 1}    3.75{col 46}{space 3}0.000{col 54}{space 4} 1.659369{col 67}{space 3} 5.291016
+{txt}{space 10}9  {c |}{col 14}{res}{space 2} 4.022328{col 26}{space 2} .9772716{col 37}{space 1}    4.12{col 46}{space 3}0.000{col 54}{space 4} 2.106911{col 67}{space 3} 5.937745
+{txt}{space 9}10  {c |}{col 14}{res}{space 2} 3.411729{col 26}{space 2} .9216363{col 37}{space 1}    3.70{col 46}{space 3}0.000{col 54}{space 4} 1.605355{col 67}{space 3} 5.218103
+{txt}{space 9}11  {c |}{col 14}{res}{space 2} 4.137044{col 26}{space 2} 1.007982{col 37}{space 1}    4.10{col 46}{space 3}0.000{col 54}{space 4} 2.161436{col 67}{space 3} 6.112652
+{txt}{space 9}12  {c |}{col 14}{res}{space 2} 3.576637{col 26}{space 2} .9653218{col 37}{space 1}    3.71{col 46}{space 3}0.000{col 54}{space 4} 1.684641{col 67}{space 3} 5.468633
+{txt}{space 9}13  {c |}{col 14}{res}{space 2}-.6116237{col 26}{space 2} 1.108183{col 37}{space 1}   -0.55{col 46}{space 3}0.581{col 54}{space 4}-2.783622{col 67}{space 3} 1.560375
+{txt}{space 9}14  {c |}{col 14}{res}{space 2}-.6621782{col 26}{space 2} .9059499{col 37}{space 1}   -0.73{col 46}{space 3}0.465{col 54}{space 4}-2.437807{col 67}{space 3} 1.113451
+{txt}{space 9}15  {c |}{col 14}{res}{space 2} 3.124744{col 26}{space 2} 1.009409{col 37}{space 1}    3.10{col 46}{space 3}0.002{col 54}{space 4}  1.14634{col 67}{space 3} 5.103149
+{txt}{space 9}16  {c |}{col 14}{res}{space 2} 1.484712{col 26}{space 2} .7859714{col 37}{space 1}    1.89{col 46}{space 3}0.059{col 54}{space 4}-.0557636{col 67}{space 3} 3.025188
+{txt}{space 9}17  {c |}{col 14}{res}{space 2} 1.323034{col 26}{space 2} 1.143108{col 37}{space 1}    1.16{col 46}{space 3}0.247{col 54}{space 4} -.917416{col 67}{space 3} 3.563484
+{txt}{space 9}18  {c |}{col 14}{res}{space 2} .4588743{col 26}{space 2} .6762012{col 37}{space 1}    0.68{col 46}{space 3}0.497{col 54}{space 4}-.8664557{col 67}{space 3} 1.784204
+{txt}{space 9}19  {c |}{col 14}{res}{space 2}-.0627744{col 26}{space 2} 1.130717{col 37}{space 1}   -0.06{col 46}{space 3}0.956{col 54}{space 4} -2.27894{col 67}{space 3} 2.153391
+{txt}{space 9}20  {c |}{col 14}{res}{space 2} 1.916768{col 26}{space 2} .5095674{col 37}{space 1}    3.76{col 46}{space 3}0.000{col 54}{space 4} .9180348{col 67}{space 3} 2.915502
+{txt}{space 9}21  {c |}{col 14}{res}{space 2} 4.236309{col 26}{space 2} 1.027812{col 37}{space 1}    4.12{col 46}{space 3}0.000{col 54}{space 4} 2.221834{col 67}{space 3} 6.250783
+{txt}{space 9}22  {c |}{col 14}{res}{space 2} 3.270833{col 26}{space 2} .6918453{col 37}{space 1}    4.73{col 46}{space 3}0.000{col 54}{space 4} 1.914842{col 67}{space 3} 4.626825
+{txt}{space 9}23  {c |}{col 14}{res}{space 2} 6.762565{col 26}{space 2} 1.385986{col 37}{space 1}    4.88{col 46}{space 3}0.000{col 54}{space 4} 4.046082{col 67}{space 3} 9.479047
+{txt}{space 9}24  {c |}{col 14}{res}{space 2} 2.900475{col 26}{space 2} .9819773{col 37}{space 1}    2.95{col 46}{space 3}0.003{col 54}{space 4} .9758344{col 67}{space 3} 4.825115
+{txt}{space 9}25  {c |}{col 14}{res}{space 2} 2.279788{col 26}{space 2} .9046967{col 37}{space 1}    2.52{col 46}{space 3}0.012{col 54}{space 4} .5066149{col 67}{space 3} 4.052961
+{txt}{space 9}26  {c |}{col 14}{res}{space 2} 4.754917{col 26}{space 2} 1.356415{col 37}{space 1}    3.51{col 46}{space 3}0.000{col 54}{space 4} 2.096393{col 67}{space 3} 7.413442
+{txt}{space 9}27  {c |}{col 14}{res}{space 2} 4.581479{col 26}{space 2} 1.585757{col 37}{space 1}    2.89{col 46}{space 3}0.004{col 54}{space 4} 1.473453{col 67}{space 3} 7.689505
+{txt}{space 9}28  {c |}{col 14}{res}{space 2} 3.196773{col 26}{space 2} .9615014{col 37}{space 1}    3.32{col 46}{space 3}0.001{col 54}{space 4} 1.312265{col 67}{space 3} 5.081281
+{txt}{space 9}29  {c |}{col 14}{res}{space 2}-2.635945{col 26}{space 2} .8302612{col 37}{space 1}   -3.17{col 46}{space 3}0.001{col 54}{space 4}-4.263227{col 67}{space 3}-1.008663
+{txt}{space 9}30  {c |}{col 14}{res}{space 2} 2.536618{col 26}{space 2}  .944565{col 37}{space 1}    2.69{col 46}{space 3}0.007{col 54}{space 4} .6853047{col 67}{space 3} 4.387931
+{txt}{space 9}31  {c |}{col 14}{res}{space 2} 2.254247{col 26}{space 2} 1.510662{col 37}{space 1}    1.49{col 46}{space 3}0.136{col 54}{space 4}-.7065972{col 67}{space 3} 5.215091
+{txt}{space 9}32  {c |}{col 14}{res}{space 2} .6514679{col 26}{space 2} .8152872{col 37}{space 1}    0.80{col 46}{space 3}0.424{col 54}{space 4}-.9464656{col 67}{space 3} 2.249401
+{txt}{space 9}33  {c |}{col 14}{res}{space 2}  2.82938{col 26}{space 2}  .836471{col 37}{space 1}    3.38{col 46}{space 3}0.001{col 54}{space 4} 1.189927{col 67}{space 3} 4.468833
+{txt}{space 9}34  {c |}{col 14}{res}{space 2} 1.012825{col 26}{space 2} .7552734{col 37}{space 1}    1.34{col 46}{space 3}0.180{col 54}{space 4}-.4674838{col 67}{space 3} 2.493134
+{txt}{space 9}35  {c |}{col 14}{res}{space 2} .8092256{col 26}{space 2} .7944492{col 37}{space 1}    1.02{col 46}{space 3}0.308{col 54}{space 4}-.7478663{col 67}{space 3} 2.366317
+{txt}{space 9}36  {c |}{col 14}{res}{space 2} .2727612{col 26}{space 2} .8978109{col 37}{space 1}    0.30{col 46}{space 3}0.761{col 54}{space 4}-1.486916{col 67}{space 3} 2.032438
+{txt}{space 9}37  {c |}{col 14}{res}{space 2} 2.708312{col 26}{space 2} 1.980862{col 37}{space 1}    1.37{col 46}{space 3}0.172{col 54}{space 4}-1.174107{col 67}{space 3} 6.590732
+{txt}{space 9}38  {c |}{col 14}{res}{space 2} 1.606944{col 26}{space 2}  .761409{col 37}{space 1}    2.11{col 46}{space 3}0.035{col 54}{space 4} .1146094{col 67}{space 3} 3.099278
+{txt}{space 9}39  {c |}{col 14}{res}{space 2} 1.220938{col 26}{space 2} .7356227{col 37}{space 1}    1.66{col 46}{space 3}0.097{col 54}{space 4} -.220856{col 67}{space 3} 2.662732
+{txt}{space 9}40  {c |}{col 14}{res}{space 2} 5.462767{col 26}{space 2} 1.061809{col 37}{space 1}    5.14{col 46}{space 3}0.000{col 54}{space 4} 3.381661{col 67}{space 3} 7.543874
+{txt}{space 9}41  {c |}{col 14}{res}{space 2}  2.21544{col 26}{space 2} .9478676{col 37}{space 1}    2.34{col 46}{space 3}0.019{col 54}{space 4} .3576538{col 67}{space 3} 4.073227
+{txt}{space 9}42  {c |}{col 14}{res}{space 2}-.1157036{col 26}{space 2}  .767174{col 37}{space 1}   -0.15{col 46}{space 3}0.880{col 54}{space 4}-1.619337{col 67}{space 3}  1.38793
+{txt}{space 9}43  {c |}{col 14}{res}{space 2} 2.084592{col 26}{space 2} .6433131{col 37}{space 1}    3.24{col 46}{space 3}0.001{col 54}{space 4} .8237212{col 67}{space 3} 3.345462
+{txt}{space 9}44  {c |}{col 14}{res}{space 2} 1.433688{col 26}{space 2} .6718205{col 37}{space 1}    2.13{col 46}{space 3}0.033{col 54}{space 4} .1169436{col 67}{space 3} 2.750432
+{txt}{space 9}45  {c |}{col 14}{res}{space 2} 1.982634{col 26}{space 2} .5879962{col 37}{space 1}    3.37{col 46}{space 3}0.001{col 54}{space 4} .8301829{col 67}{space 3} 3.135086
+{txt}{space 9}46  {c |}{col 14}{res}{space 2}-.9833469{col 26}{space 2} .5058543{col 37}{space 1}   -1.94{col 46}{space 3}0.052{col 54}{space 4}-1.974803{col 67}{space 3} .0081092
+{txt}{space 9}47  {c |}{col 14}{res}{space 2}-.9658014{col 26}{space 2} 1.034664{col 37}{space 1}   -0.93{col 46}{space 3}0.351{col 54}{space 4}-2.993705{col 67}{space 3} 1.062102
+{txt}{space 12} {c |}
+{space 7}_cons {c |}{col 14}{res}{space 2}-146.8123{col 26}{space 2}  14.8382{col 37}{space 1}   -9.89{col 46}{space 3}0.000{col 54}{space 4}-175.8947{col 67}{space 3}  -117.73
+{txt}{hline 13}{c BT}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{p 0 15 69}Instrumented:{space 2}wcrimer{p_end}
+{p 0 15 69}Instruments:{space 3}ur lnpcinc 2.id_pref 3.id_pref 4.id_pref 5.id_pref 6.id_pref 7.id_pref 8.id_pref 9.id_pref 10.id_pref 11.id_pref 12.id_pref 13.id_pref 14.id_pref 15.id_pref 16.id_pref 17.id_pref 18.id_pref 19.id_pref 20.id_pref 21.id_pref 22.id_pref 23.id_pref 24.id_pref 25.id_pref 26.id_pref 27.id_pref 28.id_pref 29.id_pref 30.id_pref 31.id_pref 32.id_pref 33.id_pref 34.id_pref 35.id_pref 36.id_pref 37.id_pref 38.id_pref 39.id_pref 40.id_pref 41.id_pref 42.id_pref 43.id_pref 44.id_pref 45.id_pref 46.id_pref 47.id_pref wur w2ur w3ur wlnpcinc w2lnpcinc w3lnpcinc{p_end}
+
+{com}. estat firststage
+
+{txt}{col 3}First-stage regression summary statistics
+{res}{col 3}{text}{hline 13}{c TT}{hline 12}{hline 12}{hline 12}{hline 12}{hline 12}
+{col 16}{c |}{col 29}Adjusted{col 43}Partial{col 57}Robust
+{col 3}{text}    Variable{col 16}{c |}   R-sq.{col 29}   R-sq.{col 41}    R-sq.{col 53}  F(6,1664){col 65}  Prob > F
+{res}{col 3}{text}{hline 13}{c +}{hline 12}{hline 12}{hline 12}{hline 12}{hline 12}
+{col 3}{text}     wcrimer{col 16}{c |}{result}{space 2}0.6902{col 29}{space 2}0.6802{col 41}{space 3}0.1406{col 53}{space 3} 36.5241{col 65}{space 3}0.0000
+{col 3}{text}{hline 13}{c BT}{hline 12}{hline 12}{hline 12}{hline 12}{hline 12}
+
+{res}{txt}
+{com}. estat overid
+
+{txt}{col 3}Test of overidentifying restriction:
+
+{col 3}Hansen's J chi2({res}5{txt}) ={res} 2.05545{txt} (p = {res}0.8414{txt})
+
+{com}. est store ivreg_gmm_sp
+{txt}
+{com}. 
+. ** OLS: y = rho*Wy + XB + u
+. reg crimer ur lnpcinc wur wlnpcinc i.id_pref, robust
+
+{txt}Linear regression                               Number of obs     = {res}     1,719
+                                                {txt}F(50, 1668)       =  {res}    44.71
+                                                {txt}Prob > F          = {res}    0.0000
+                                                {txt}R-squared         = {res}    0.5799
+                                                {txt}Root MSE          =    {res} 4.7958
+
+{txt}{hline 13}{c TT}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{col 14}{c |}{col 26}    Robust
+{col 1}      crimer{col 14}{c |}      Coef.{col 26}   Std. Err.{col 38}      t{col 46}   P>|t|{col 54}     [95% Con{col 67}f. Interval]
+{hline 13}{c +}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{space 10}ur {c |}{col 14}{res}{space 2} .8501937{col 26}{space 2}  .100182{col 37}{space 1}    8.49{col 46}{space 3}0.000{col 54}{space 4} .6536981{col 67}{space 3} 1.046689
+{txt}{space 5}lnpcinc {c |}{col 14}{res}{space 2} 19.85968{col 26}{space 2} 2.003007{col 37}{space 1}    9.91{col 46}{space 3}0.000{col 54}{space 4} 15.93101{col 67}{space 3} 23.78835
+{txt}{space 9}wur {c |}{col 14}{res}{space 2} .3071344{col 26}{space 2} .1260915{col 37}{space 1}    2.44{col 46}{space 3}0.015{col 54}{space 4} .0598201{col 67}{space 3} .5544488
+{txt}{space 4}wlnpcinc {c |}{col 14}{res}{space 2} 8.105901{col 26}{space 2} 2.265182{col 37}{space 1}    3.58{col 46}{space 3}0.000{col 54}{space 4} 3.663002{col 67}{space 3}  12.5488
+{txt}{space 12} {c |}
+{space 5}id_pref {c |}
+{space 10}2  {c |}{col 14}{res}{space 2}-1.336625{col 26}{space 2} .8362506{col 37}{space 1}   -1.60{col 46}{space 3}0.110{col 54}{space 4}-2.976836{col 67}{space 3} .3035863
+{txt}{space 10}3  {c |}{col 14}{res}{space 2}-.1922977{col 26}{space 2} .6959088{col 37}{space 1}   -0.28{col 46}{space 3}0.782{col 54}{space 4}-1.557244{col 67}{space 3} 1.172649
+{txt}{space 10}4  {c |}{col 14}{res}{space 2} 3.890536{col 26}{space 2}  .588918{col 37}{space 1}    6.61{col 46}{space 3}0.000{col 54}{space 4}  2.73544{col 67}{space 3} 5.045632
+{txt}{space 10}5  {c |}{col 14}{res}{space 2} .7645644{col 26}{space 2} .6357957{col 37}{space 1}    1.20{col 46}{space 3}0.229{col 54}{space 4}-.4824772{col 67}{space 3} 2.011606
+{txt}{space 10}6  {c |}{col 14}{res}{space 2} 2.186908{col 26}{space 2}  .560995{col 37}{space 1}    3.90{col 46}{space 3}0.000{col 54}{space 4}  1.08658{col 67}{space 3} 3.287236
+{txt}{space 10}7  {c |}{col 14}{res}{space 2} 2.709871{col 26}{space 2} .5700037{col 37}{space 1}    4.75{col 46}{space 3}0.000{col 54}{space 4} 1.591873{col 67}{space 3} 3.827869
+{txt}{space 10}8  {c |}{col 14}{res}{space 2} 5.424755{col 26}{space 2} .7953831{col 37}{space 1}    6.82{col 46}{space 3}0.000{col 54}{space 4} 3.864701{col 67}{space 3}  6.98481
+{txt}{space 10}9  {c |}{col 14}{res}{space 2} 6.169888{col 26}{space 2} .8757034{col 37}{space 1}    7.05{col 46}{space 3}0.000{col 54}{space 4} 4.452294{col 67}{space 3} 7.887481
+{txt}{space 9}10  {c |}{col 14}{res}{space 2} 5.372768{col 26}{space 2} .8739726{col 37}{space 1}    6.15{col 46}{space 3}0.000{col 54}{space 4} 3.658569{col 67}{space 3} 7.086967
+{txt}{space 9}11  {c |}{col 14}{res}{space 2} 6.745317{col 26}{space 2} .8493362{col 37}{space 1}    7.94{col 46}{space 3}0.000{col 54}{space 4}  5.07944{col 67}{space 3} 8.411194
+{txt}{space 9}12  {c |}{col 14}{res}{space 2} 5.853715{col 26}{space 2} .7951619{col 37}{space 1}    7.36{col 46}{space 3}0.000{col 54}{space 4} 4.294094{col 67}{space 3} 7.413335
+{txt}{space 9}13  {c |}{col 14}{res}{space 2} .3967622{col 26}{space 2} 1.239143{col 37}{space 1}    0.32{col 46}{space 3}0.749{col 54}{space 4}-2.033678{col 67}{space 3} 2.827202
+{txt}{space 9}14  {c |}{col 14}{res}{space 2}-.7511002{col 26}{space 2} 1.074141{col 37}{space 1}   -0.70{col 46}{space 3}0.484{col 54}{space 4}-2.857907{col 67}{space 3} 1.355707
+{txt}{space 9}15  {c |}{col 14}{res}{space 2} 5.258768{col 26}{space 2} .9327341{col 37}{space 1}    5.64{col 46}{space 3}0.000{col 54}{space 4} 3.429315{col 67}{space 3}  7.08822
+{txt}{space 9}16  {c |}{col 14}{res}{space 2} 2.399904{col 26}{space 2} .7317579{col 37}{space 1}    3.28{col 46}{space 3}0.001{col 54}{space 4} .9646432{col 67}{space 3} 3.835164
+{txt}{space 9}17  {c |}{col 14}{res}{space 2} 2.272453{col 26}{space 2} 1.193722{col 37}{space 1}    1.90{col 46}{space 3}0.057{col 54}{space 4}-.0688994{col 67}{space 3} 4.613805
+{txt}{space 9}18  {c |}{col 14}{res}{space 2} .8198572{col 26}{space 2} .6982632{col 37}{space 1}    1.17{col 46}{space 3}0.241{col 54}{space 4}-.5497073{col 67}{space 3} 2.189422
+{txt}{space 9}19  {c |}{col 14}{res}{space 2} .3625315{col 26}{space 2} 1.286528{col 37}{space 1}    0.28{col 46}{space 3}0.778{col 54}{space 4}-2.160848{col 67}{space 3} 2.885911
+{txt}{space 9}20  {c |}{col 14}{res}{space 2} 2.836619{col 26}{space 2} .5278062{col 37}{space 1}    5.37{col 46}{space 3}0.000{col 54}{space 4} 1.801387{col 67}{space 3} 3.871851
+{txt}{space 9}21  {c |}{col 14}{res}{space 2} 7.052192{col 26}{space 2} .9406677{col 37}{space 1}    7.50{col 46}{space 3}0.000{col 54}{space 4} 5.207178{col 67}{space 3} 8.897205
+{txt}{space 9}22  {c |}{col 14}{res}{space 2} 4.925829{col 26}{space 2} .5767289{col 37}{space 1}    8.54{col 46}{space 3}0.000{col 54}{space 4} 3.794641{col 67}{space 3} 6.057018
+{txt}{space 9}23  {c |}{col 14}{res}{space 2}  10.6645{col 26}{space 2} 1.139663{col 37}{space 1}    9.36{col 46}{space 3}0.000{col 54}{space 4}  8.42918{col 67}{space 3} 12.89982
+{txt}{space 9}24  {c |}{col 14}{res}{space 2}  5.32535{col 26}{space 2} 1.113129{col 37}{space 1}    4.78{col 46}{space 3}0.000{col 54}{space 4} 3.142073{col 67}{space 3} 7.508628
+{txt}{space 9}25  {c |}{col 14}{res}{space 2} 3.960004{col 26}{space 2} .7767278{col 37}{space 1}    5.10{col 46}{space 3}0.000{col 54}{space 4}  2.43654{col 67}{space 3} 5.483468
+{txt}{space 9}26  {c |}{col 14}{res}{space 2} 7.138931{col 26}{space 2} 1.395238{col 37}{space 1}    5.12{col 46}{space 3}0.000{col 54}{space 4} 4.402328{col 67}{space 3} 9.875534
+{txt}{space 9}27  {c |}{col 14}{res}{space 2}  7.85091{col 26}{space 2} 1.499477{col 37}{space 1}    5.24{col 46}{space 3}0.000{col 54}{space 4} 4.909854{col 67}{space 3} 10.79197
+{txt}{space 9}28  {c |}{col 14}{res}{space 2} 5.214229{col 26}{space 2} .9601868{col 37}{space 1}    5.43{col 46}{space 3}0.000{col 54}{space 4} 3.330931{col 67}{space 3} 7.097527
+{txt}{space 9}29  {c |}{col 14}{res}{space 2}-3.416303{col 26}{space 2} .9187552{col 37}{space 1}   -3.72{col 46}{space 3}0.000{col 54}{space 4}-5.218338{col 67}{space 3}-1.614269
+{txt}{space 9}30  {c |}{col 14}{res}{space 2} 3.656859{col 26}{space 2} .8685166{col 37}{space 1}    4.21{col 46}{space 3}0.000{col 54}{space 4} 1.953362{col 67}{space 3} 5.360357
+{txt}{space 9}31  {c |}{col 14}{res}{space 2} 4.476673{col 26}{space 2} 1.562439{col 37}{space 1}    2.87{col 46}{space 3}0.004{col 54}{space 4} 1.412124{col 67}{space 3} 7.541221
+{txt}{space 9}32  {c |}{col 14}{res}{space 2} 1.096699{col 26}{space 2} 1.048176{col 37}{space 1}    1.05{col 46}{space 3}0.296{col 54}{space 4}-.9591789{col 67}{space 3} 3.152578
+{txt}{space 9}33  {c |}{col 14}{res}{space 2} 4.546907{col 26}{space 2} .7934543{col 37}{space 1}    5.73{col 46}{space 3}0.000{col 54}{space 4} 2.990635{col 67}{space 3} 6.103178
+{txt}{space 9}34  {c |}{col 14}{res}{space 2} 2.201458{col 26}{space 2} .7579665{col 37}{space 1}    2.90{col 46}{space 3}0.004{col 54}{space 4} .7147921{col 67}{space 3} 3.688124
+{txt}{space 9}35  {c |}{col 14}{res}{space 2} 1.939088{col 26}{space 2} .7559582{col 37}{space 1}    2.57{col 46}{space 3}0.010{col 54}{space 4} .4563616{col 67}{space 3} 3.421815
+{txt}{space 9}36  {c |}{col 14}{res}{space 2}  .250084{col 26}{space 2} 1.026612{col 37}{space 1}    0.24{col 46}{space 3}0.808{col 54}{space 4}-1.763499{col 67}{space 3} 2.263667
+{txt}{space 9}37  {c |}{col 14}{res}{space 2} 5.735009{col 26}{space 2} 2.011469{col 37}{space 1}    2.85{col 46}{space 3}0.004{col 54}{space 4} 1.789739{col 67}{space 3}  9.68028
+{txt}{space 9}38  {c |}{col 14}{res}{space 2} 2.509825{col 26}{space 2} .7906209{col 37}{space 1}    3.17{col 46}{space 3}0.002{col 54}{space 4} .9591114{col 67}{space 3} 4.060539
+{txt}{space 9}39  {c |}{col 14}{res}{space 2} 1.847602{col 26}{space 2} .8106561{col 37}{space 1}    2.28{col 46}{space 3}0.023{col 54}{space 4} .2575913{col 67}{space 3} 3.437612
+{txt}{space 9}40  {c |}{col 14}{res}{space 2} 8.445365{col 26}{space 2}  .839661{col 37}{space 1}   10.06{col 46}{space 3}0.000{col 54}{space 4} 6.798464{col 67}{space 3} 10.09227
+{txt}{space 9}41  {c |}{col 14}{res}{space 2} 3.541679{col 26}{space 2} .9056002{col 37}{space 1}    3.91{col 46}{space 3}0.000{col 54}{space 4} 1.765447{col 67}{space 3} 5.317912
+{txt}{space 9}42  {c |}{col 14}{res}{space 2} .2107555{col 26}{space 2} .7298637{col 37}{space 1}    0.29{col 46}{space 3}0.773{col 54}{space 4} -1.22079{col 67}{space 3} 1.642301
+{txt}{space 9}43  {c |}{col 14}{res}{space 2} 3.404114{col 26}{space 2} .6509809{col 37}{space 1}    5.23{col 46}{space 3}0.000{col 54}{space 4} 2.127288{col 67}{space 3} 4.680939
+{txt}{space 9}44  {c |}{col 14}{res}{space 2}  2.01674{col 26}{space 2} .7971127{col 37}{space 1}    2.53{col 46}{space 3}0.011{col 54}{space 4} .4532931{col 67}{space 3} 3.580186
+{txt}{space 9}45  {c |}{col 14}{res}{space 2} 3.005323{col 26}{space 2} .6924557{col 37}{space 1}    4.34{col 46}{space 3}0.000{col 54}{space 4} 1.647149{col 67}{space 3} 4.363496
+{txt}{space 9}46  {c |}{col 14}{res}{space 2}-1.193532{col 26}{space 2} .6563779{col 37}{space 1}   -1.82{col 46}{space 3}0.069{col 54}{space 4}-2.480943{col 67}{space 3} .0938797
+{txt}{space 9}47  {c |}{col 14}{res}{space 2}-1.162428{col 26}{space 2} 1.203948{col 37}{space 1}   -0.97{col 46}{space 3}0.334{col 54}{space 4}-3.523837{col 67}{space 3} 1.198981
+{txt}{space 12} {c |}
+{space 7}_cons {c |}{col 14}{res}{space 2}-221.3257{col 26}{space 2} 15.32817{col 37}{space 1}  -14.44{col 46}{space 3}0.000{col 54}{space 4}-251.3902{col 67}{space 3}-191.2613
+{txt}{hline 13}{c BT}{hline 11}{hline 11}{hline 9}{hline 8}{hline 13}{hline 12}
+{res}{txt}
+{com}. est store reg_wxvar
+{txt}
+{com}. 
+. 
+. ** Estimation Results
+. esttab reg reg_sp ivreg_2sls_sp ivreg_gmm_sp reg_wxvar, ///
+>         b(%12.3f) se(%12.3f) ///
+>         drop(*id_pref*) ///
+>         order(wcrimer) ///
+>         star(* 0.10 ** 0.05 *** 0.01) ///
+>         scalars(r2_a rkf jp) ///
+>         sfmt(%12.3f) ///
+>         nogaps
+{res}
+{txt}{hline 92}
+{txt}                      (1)             (2)             (3)             (4)             (5)   
+{txt}                   crimer          crimer          crimer          crimer          crimer   
+{txt}{hline 92}
+{txt}wcrimer     {res}                        0.534***        0.365***        0.359***                {txt}
+            {res}                 {ralign 12:{txt:(}0.033{txt:)}}    {ralign 12:{txt:(}0.079{txt:)}}    {ralign 12:{txt:(}0.078{txt:)}}                   {txt}
+{txt}ur          {res}        0.987***        0.675***        0.773***        0.764***        0.850***{txt}
+            {res} {ralign 12:{txt:(}0.086{txt:)}}    {ralign 12:{txt:(}0.072{txt:)}}    {ralign 12:{txt:(}0.083{txt:)}}    {ralign 12:{txt:(}0.082{txt:)}}    {ralign 12:{txt:(}0.100{txt:)}}   {txt}
+{txt}lnpcinc     {res}       23.726***       15.761***       18.276***       18.534***       19.860***{txt}
+            {res} {ralign 12:{txt:(}1.639{txt:)}}    {ralign 12:{txt:(}1.570{txt:)}}    {ralign 12:{txt:(}1.927{txt:)}}    {ralign 12:{txt:(}1.889{txt:)}}    {ralign 12:{txt:(}2.003{txt:)}}   {txt}
+{txt}wur         {res}                                                                        0.307** {txt}
+            {res}                                                                 {ralign 12:{txt:(}0.126{txt:)}}   {txt}
+{txt}wlnpcinc    {res}                                                                        8.106***{txt}
+            {res}                                                                 {ralign 12:{txt:(}2.265{txt:)}}   {txt}
+{txt}_cons       {res}     -186.687***     -125.612***     -144.895***     -146.812***     -221.326***{txt}
+            {res} {ralign 12:{txt:(}13.076{txt:)}}    {ralign 12:{txt:(}12.465{txt:)}}    {ralign 12:{txt:(}15.122{txt:)}}    {ralign 12:{txt:(}14.838{txt:)}}    {ralign 12:{txt:(}15.328{txt:)}}   {txt}
+{txt}{hline 92}
+{txt}N           {res}         1719            1719            1719            1719            1719   {txt}
+{txt}r2_a        {res}        0.562           0.645           0.637           0.636           0.567   {txt}
+{txt}rkf         {res}                                                                                {txt}
+{txt}jp          {res}                                                                                {txt}
+{txt}{hline 92}
+{txt}Standard errors in parentheses
+{txt}* p<0.10, ** p<0.05, *** p<0.01
+
+{com}. 
+.         
+. ** 
+. log close
+      {txt}name:  {res}<unnamed>
+       {txt}log:  {res}E:\MyWorks\RIETI_Project\Stata_RePEc_SPGEN\github\spgen\demo\jpmuni_crime\log/LOG_spgen.smcl
+  {txt}log type:  {res}smcl
+ {txt}closed on:  {res} 6 Jun 2021, 08:46:36
+{txt}{.-}
+{smcl}
+{txt}{sf}{ul off}
